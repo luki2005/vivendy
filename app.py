@@ -5,6 +5,13 @@ from werkzeug.utils import secure_filename
 from functools import wraps
 from datetime import date
 import os
+from pymongo import MongoClient
+from bson import ObjectId
+
+MONGO_URL = "DEINE_MONGO_URL_HIER" 
+client = MongoClient(MONGO_URL) 
+db = client["vivwendy"]
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vivwendy.db'
@@ -52,23 +59,25 @@ def login_required(f):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username'].strip()
-        email = request.form['email'].strip()
+        username = request.form['username']
+        email = request.form['email']
         password = request.form['password']
 
-        if not username or not email or not password:
-            return render_template('register.html', error="Bitte alle Felder ausfüllen.")
-
-        if User.query.filter((User.username == username) | (User.email == email)).first():
-            return render_template('register.html', error="Username oder E-Mail bereits vergeben.")
+        if db.users.find_one({"$or": [{"username": username}, {"email": email}]}):
+            return render_template('register.html', error="User existiert bereits")
 
         hashed = generate_password_hash(password)
-        user = User(username=username, email=email, password_hash=hashed)
-        db.session.add(user)
-        db.session.commit()
+
+        db.users.insert_one({
+            "username": username,
+            "email": email,
+            "password_hash": hashed
+        })
+
         return redirect(url_for('login'))
 
     return render_template('register.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -99,62 +108,59 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    personen = Person.query.all()
+    personen = list(db.persons.find())
     return render_template('index.html', personen=personen)
+
 
 @app.route('/person/new', methods=['GET', 'POST'])
 @login_required
 def person_new():
     if request.method == 'POST':
         name = request.form['name']
-        geburtsdatum = request.form.get('geburtsdatum') or None
+        geburtsdatum = request.form.get('geburtsdatum')
         beschreibung = request.form.get('beschreibung')
 
         file = request.files.get('bild')
         filename = None
+
         if file and file.filename:
             os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        person = Person(
-            name=name,
-            geburtsdatum=date.fromisoformat(geburtsdatum) if geburtsdatum else None,
-            beschreibung=beschreibung,
-            bild_dateiname=filename
-        )
-        db.session.add(person)
-        db.session.commit()
+        db.persons.insert_one({
+            "name": name,
+            "geburtsdatum": geburtsdatum,
+            "beschreibung": beschreibung,
+            "bild_dateiname": filename
+        })
+
         return redirect(url_for('index'))
 
     return render_template('person_new.html')
 
-@app.route('/person/<int:person_id>')
-@login_required
-def person_detail(person_id):
-    person = Person.query.get_or_404(person_id)
-    return render_template('person_detail.html', person=person)
 
-@app.route('/person/<int:person_id>/event/new', methods=['GET', 'POST'])
+@app.route('/person/<id>/event/new', methods=['GET', 'POST'])
 @login_required
-def event_new(person_id):
-    person = Person.query.get_or_404(person_id)
+def event_new(id):
+    person = db.persons.find_one({"_id": ObjectId(id)})
+
     if request.method == 'POST':
         titel = request.form['titel']
-        datum = date.fromisoformat(request.form['datum'])
+        datum = request.form['datum']
         beschreibung = request.form.get('beschreibung')
 
-        event = Event(
-            person_id=person.id,
-            titel=titel,
-            datum=datum,
-            beschreibung=beschreibung
-        )
-        db.session.add(event)
-        db.session.commit()
-        return redirect(url_for('person_detail', person_id=person.id))
+        db.events.insert_one({
+            "person_id": id,
+            "titel": titel,
+            "datum": datum,
+            "beschreibung": beschreibung
+        })
+
+        return redirect(url_for('person_detail', id=id))
 
     return render_template('event_new.html', person=person)
+
 
 if __name__ == '__main__':
     with app.app_context():
