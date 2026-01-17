@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login{% endblock %}
+{% block header %}Admin-Zugang{% endblock %}
+
+{% block content %}
+<div class="login-box">
+  <form method="post">
+    <input type="password" name="password" placeholder="Admin-Passwort" required>
+    <button class="btn">Zugreifen</button>
+
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}
