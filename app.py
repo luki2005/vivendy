@@ -109,7 +109,10 @@ def admin_users():
 def ban_user(user_id):
     db.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"banned": True, "ban_reason": request.form.get("reason")}}
+        {"$set": {
+            "banned": True,
+            "ban_reason": request.form.get("reason")
+        }}
     )
     return redirect(url_for("admin_users"))
 
@@ -120,7 +123,28 @@ def ban_user(user_id):
 def unban_user(user_id):
     db.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"banned": False, "ban_reason": None}}
+        {"$set": {
+            "banned": False,
+            "ban_reason": None
+        }}
+    )
+    return redirect(url_for("admin_users"))
+
+
+@app.route("/admin/password/<user_id>", methods=["POST"])
+@login_required
+@admin_required
+def admin_change_password(user_id):
+    password = request.form.get("password")
+
+    if not password or len(password) < 6:
+        return redirect(url_for("admin_users"))
+
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {
+            "password_hash": generate_password_hash(password)
+        }}
     )
     return redirect(url_for("admin_users"))
 
