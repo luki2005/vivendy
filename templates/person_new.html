@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Neue Person – Vivwendy{% endblock %}
+{% block header %}Neue Person anlegen{% endblock %}
+
+{% block content %}
+  <form class="form-card" method="post" enctype="multipart/form-data">
+    <div class="form-row">
+      <label> Name
+        <input type="text" name="name" required>
+      </label>
+
+      <label> Geburtsdatum
+        <input type="date" name="geburtsdatum">
+      </label>
+    </div>
+
+    <label> Beschreibung
+      <textarea name="beschreibung" rows="4"></textarea>
+    </label>
+
+    <label> Bild
+      <input type="file" name="bild">
+    </label>
+
+    <div class="form-actions">
+      <a class="btn" href="{{ url_for('index') }}">Abbrechen</a>
+      <button class="btn primary" type="submit">Speichern</button>
+    </div>
+  </form>
+{% endblock %}

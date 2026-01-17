@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Neuer Termin – Vivwendy{% endblock %}
+{% block header %}Neuer Termin für {{ person.name }}{% endblock %}
+
+{% block content %}
+  <form class="form-card" method="post">
+    <label> Titel
+      <input type="text" name="titel" required>
+    </label>
+
+    <label> Datum
+      <input type="date" name="datum" required>
+    </label>
+
+    <label> Beschreibung
+      <textarea name="beschreibung" rows="3"></textarea>
+    </label>
+
+    <div class="form-actions">
+      <a class="btn" href="{{ url_for('person_detail', person_id=person.id) }}">Abbrechen</a>
+      <button class="btn primary" type="submit">Speichern</button>
+    </div>
+  </form>
+{% endblock %}

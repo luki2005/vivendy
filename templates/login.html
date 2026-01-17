@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Login – Vivwendy{% endblock %}
+{% block header %}Login{% endblock %}
+
+{% block content %}
+  <form class="form-card" method="post">
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <label> Username oder Gmail
+      <input type="text" name="login" required>
+    </label>
+
+    <label> Passwort
+      <input type="password" name="password" required>
+    </label>
+
+    <div class="form-actions">
+      <button class="btn primary" type="submit">Einloggen</button>
+    </div>
+
+    <p class="muted">
+      Noch kein Account?
+      <a href="{{ url_for('register') }}">Registrieren</a>
+    </p>
+  </form>
+{% endblock %}

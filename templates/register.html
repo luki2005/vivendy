@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Registrieren – Vivwendy{% endblock %}
+{% block header %}Registrieren{% endblock %}
+
+{% block content %}
+  <form class="form-card" method="post">
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <label> Username
+      <input type="text" name="username" required>
+    </label>
+
+    <label> Gmail-Adresse
+      <input type="email" name="email" required>
+    </label>
+
+    <label> Passwort
+      <input type="password" name="password" required>
+    </label>
+
+    <div class="form-actions">
+      <button class="btn primary" type="submit">Account erstellen</button>
+    </div>
+  </form>
+{% endblock %}

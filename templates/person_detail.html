@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ person.name }} – Vivwendy{% endblock %}
+{% block header %}{{ person.name }}{% endblock %}
+
+{% block content %}
+  <div class="detail-layout">
+    <div class="detail-left card">
+      <div class="profile-header">
+        {% if person.bild_dateiname %}
+          <img class="profile-image" src="{{ url_for('static', filename='uploads/' + person.bild_dateiname) }}" alt="{{ person.name }}">
+        {% else %}
+          <div class="avatar-large">{{ person.name[0] }}</div>
+        {% endif %}
+        <div>
+          <h2>{{ person.name }}</h2>
+          {% if person.geburtsdatum %}
+            <p class="muted">Geboren: {{ person.geburtsdatum }}</p>
+          {% endif %}
+        </div>
+      </div>
+      <p>{{ person.beschreibung }}</p>
+    </div>
+
+    <div class="detail-right">
+      <div class="card">
+        <div class="card-header">
+          <h3>Kalender</h3>
+          <a class="btn small primary" href="{{ url_for('event_new', id=person._id) }}">+ Termin</a>
+        </div>
+
+        <ul class="timeline">
+          {% for e in events %}
+            <li class="timeline-item">
+              <div class="timeline-date">{{ e.datum }}</div>
+              <div class="timeline-content">
+                <strong>{{ e.titel }}</strong>
+                <p>{{ e.beschreibung }}</p>
+              </div>
+            </li>
+          {% else %}
+            <p class="muted">Noch keine Termine.</p>
+          {% endfor %}
+        </ul>
+
+      </div>
+    </div>
+  </div>
+
+  <a class="btn" href="{{ url_for('index') }}">Zurück zur Übersicht</a>
+{% endblock %}

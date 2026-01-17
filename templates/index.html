@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Personen – Vivwendy{% endblock %}
+{% block header %}Personenübersicht{% endblock %}
+
+{% block content %}
+  <div class="toolbar">
+    <a class="btn primary" href="{{ url_for('person_new') }}">+ Neue Person</a>
+  </div>
+
+  <div class="card-grid">
+    {% for p in personen %}
+      <a class="card person-card" href="{{ url_for('person_detail', id=p._id) }}">
+        <div class="card-image">
+          {% if p.bild_dateiname %}
+            <img src="{{ url_for('static', filename='uploads/' + p.bild_dateiname) }}" alt="{{ p.name }}">
+          {% else %}
+            <div class="avatar-placeholder">{{ p.name[0] }}</div>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <h2>{{ p.name }}</h2>
+          {% if p.geburtsdatum %}
+            <p class="muted">Geboren: {{ p.geburtsdatum }}</p>
+          {% endif %}
+          <p class="ellipsis">{{ p.beschreibung }}</p>
+        </div>
+      </a>
+    {% else %}
+      <p class="muted">Noch keine Personen angelegt.</p>
+    {% endfor %}
+  </div>
+{% endblock %}
