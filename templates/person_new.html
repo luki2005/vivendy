@@ -1,31 +1,26 @@
 {% extends "base.html" %}
-
-{% block title %}Neue Person – Vivwendy{% endblock %}
-{% block header %}Neue Person anlegen{% endblock %}
+{% block title %}{{ person.name }}{% endblock %}
+{% block header %}{{ person.name }}{% endblock %}
 
 {% block content %}
-  <form class="form-card" method="post" enctype="multipart/form-data">
-    <div class="form-row">
-      <label> Name
-        <input type="text" name="name" required>
-      </label>
+<div class="person-detail">
+  {% if person.bild_dateiname %}
+    <img src="{{ url_for('static', filename='uploads/' ~ person.bild_dateiname) }}" class="person-image">
+  {% endif %}
+  <p><strong>Geburtsdatum:</strong> {{ person.geburtsdatum }}</p>
+  <p><strong>Beschreibung:</strong> {{ person.beschreibung }}</p>
+</div>
 
-      <label> Geburtsdatum
-        <input type="date" name="geburtsdatum">
-      </label>
-    </div>
+<h3>Events</h3>
+{% if events %}
+  <ul class="event-list">
+    {% for e in events %}
+      <li><strong>{{ e.titel }}</strong> – {{ e.datum }}<br>{{ e.beschreibung }}</li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Keine Events vorhanden.</p>
+{% endif %}
 
-    <label> Beschreibung
-      <textarea name="beschreibung" rows="4"></textarea>
-    </label>
-
-    <label> Bild
-      <input type="file" name="bild">
-    </label>
-
-    <div class="form-actions">
-      <a class="btn" href="{{ url_for('index') }}">Abbrechen</a>
-      <button class="btn primary" type="submit">Speichern</button>
-    </div>
-  </form>
+<a href="{{ url_for('event_new', id=person._id) }}" class="btn">Neues Event hinzufügen</a>
 {% endblock %}
