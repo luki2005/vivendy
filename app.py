@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
@@ -57,7 +57,8 @@ def register():
             "banned": False,
             "ban_reason": None,
             "role": "user",
-            "login_attempts": 0
+            "login_attempts": 0,
+            "reset_allowed": False  # neu für Passwort-Reset
         })
         return redirect(url_for("login"))
     return render_template("register.html")
@@ -70,13 +71,14 @@ def login():
         password = request.form["password"]
 
         user = db.users.find_one({"$or": [{"username": login_input}, {"email": login_input}]})
-
         if not user:
             return render_template("login.html", error="Falsche Login-Daten")
 
+        # Account gesperrt prüfen
         if user.get("banned"):
             return render_template("banned.html", reason=user.get("ban_reason"))
 
+        # Passwort prüfen
         if not check_password_hash(user["password_hash"], password):
             attempts = user.get("login_attempts", 0) + 1
             update_data = {"login_attempts": attempts}
@@ -86,13 +88,13 @@ def login():
             db.users.update_one({"_id": user["_id"]}, {"$set": update_data})
 
             if attempts >= MAX_LOGIN_ATTEMPTS:
-                return render_template("banned.html", reason="Passwort 4 mal falsch eingegeben. Bitte Moderator kontaktieren.")
+                return render_template("banned.html",
+                                       reason="Passwort 4 mal falsch eingegeben. Bitte Moderator kontaktieren.")
 
             return render_template("login.html", error="Falsche Login-Daten")
 
-        # Reset login attempts on success
+        # Login erfolgreich: Login-Versuche zurücksetzen
         db.users.update_one({"_id": user["_id"]}, {"$set": {"login_attempts": 0}})
-
         session["user_id"] = str(user["_id"])
         session["username"] = user["email"]
         session["role"] = user.get("role", "user")
@@ -105,8 +107,9 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+
 # ===================== Admin Panel =====================
-@app.route("/admin/users", methods=["GET", "POST"])
+@app.route("/admin/users")
 @login_required
 @admin_only
 def admin_users():
@@ -114,51 +117,37 @@ def admin_users():
     return render_template("admin_users.html", users=users)
 
 
-@app.route("/admin/ban/<user_id>", methods=["POST"])
+@app.route("/admin/allow-reset/<user_id>", methods=["POST"])
 @login_required
 @admin_only
-def ban_user(user_id):
-    db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"banned": True, "ban_reason": request.form.get("reason")}})
+def allow_reset(user_id):
+    # Admin gibt User die Berechtigung zum Passwort-Reset
+    db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"reset_allowed": True, "banned": False, "ban_reason": None, "login_attempts": 0}})
     return redirect(url_for("admin_users"))
 
 
-@app.route("/admin/unban/<user_id>", methods=["POST"])
+@app.route("/reset-password/<user_id>", methods=["GET", "POST"])
 @login_required
-@admin_only
-def unban_user(user_id):
-    db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"banned": False, "ban_reason": None, "login_attempts": 0}})
-    return redirect(url_for("admin_users"))
+def reset_password(user_id):
+    user = db.users.find_one({"_id": ObjectId(user_id)})
+    if not user or not user.get("reset_allowed"):
+        flash("Kein Reset erlaubt.")
+        return redirect(url_for("index"))
 
+    if request.method == "POST":
+        new_pass = request.form["password"]
+        if not new_pass or len(new_pass) < 6:
+            flash("Passwort mindestens 6 Zeichen")
+            return redirect(url_for("reset_password", user_id=user_id))
 
-@app.route("/admin/password/<user_id>", methods=["POST"])
-@login_required
-@admin_only
-def admin_change_password(user_id):
-    password = request.form.get("password")
-    if not password or len(password) < 6:
-        return redirect(url_for("admin_users"))
-    db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password_hash": generate_password_hash(password), "login_attempts": 0, "banned": False, "ban_reason": None}})
-    return redirect(url_for("admin_users"))
+        db.users.update_one({"_id": ObjectId(user_id)},
+                            {"$set": {"password_hash": generate_password_hash(new_pass),
+                                      "reset_allowed": False}})
+        flash("Passwort erfolgreich geändert.")
+        return redirect(url_for("login"))
 
+    return render_template("reset_password.html", user=user)
 
-@app.route("/admin/block-email", methods=["POST"])
-@login_required
-@admin_only
-def block_email():
-    email = request.form.get("email").lower()
-    reason = request.form.get("reason", "gesperrt")
-    if not db.blocked_emails.find_one({"email": email}):
-        db.blocked_emails.insert_one({"email": email, "reason": reason})
-    db.users.update_many({"email": email}, {"$set": {"banned": True, "ban_reason": "E-Mail gesperrt"}})
-    return redirect(url_for("admin_users"))
-
-
-@app.route("/admin/logout")
-@login_required
-@admin_only
-def admin_logout():
-    session.pop("admin_access", None)
-    return redirect(url_for("index"))
 
 # ===================== Personen & Events =====================
 @app.route("/")
