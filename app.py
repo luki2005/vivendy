@@ -94,7 +94,7 @@ def admin_users():
             return render_template("admin_login.html", error="Falsches Passwort")
 
     if not session.get("admin_access"):
-        return render_template("admin_login.html")
+        return render_template("admin_users.html")
 
     users = list(db.users.find())
     return render_template("admin_users.html", users=users)
