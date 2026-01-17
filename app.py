@@ -57,7 +57,7 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST']:
+    if request.method == 'POST':
         login_input = request.form['login'].strip()
         password = request.form['password']
 
