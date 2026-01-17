@@ -1,33 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}Personen – Vivwendy{% endblock %}
-{% block header %}Personenübersicht{% endblock %}
+{% block title %}Personenübersicht{% endblock %}
 
 {% block content %}
-  <div class="toolbar">
-    <a class="btn primary" href="{{ url_for('person_new') }}">+ Neue Person</a>
-  </div>
+<div class="index-container">
+    <div class="tools-bar">
+        <a href="{{ url_for('person_new') }}" class="btn">+ Neue Person</a>
+        {% if session.get("role") == 'admin' %}
+        <a href="{{ url_for('admin_users') }}" class="btn btn-admin">Admin Panel</a>
+        {% endif %}
+    </div>
 
-  <div class="card-grid">
-    {% for p in personen %}
-      <a class="card person-card" href="{{ url_for('person_detail', id=p._id) }}">
-        <div class="card-image">
-          {% if p.bild_dateiname %}
-            <img src="{{ url_for('static', filename='uploads/' + p.bild_dateiname) }}" alt="{{ p.name }}">
-          {% else %}
-            <div class="avatar-placeholder">{{ p.name[0] }}</div>
-          {% endif %}
+    <div class="person-grid">
+        {% for person in personen %}
+        <div class="person-card">
+            {% if person.bild_dateiname %}
+            <img src="{{ url_for('static', filename='uploads/' + person.bild_dateiname) }}" alt="{{ person.name }}">
+            {% endif %}
+            <h3>{{ person.name }}</h3>
+            {% if person.geburtsdatum %}
+            <p>Geboren: {{ person.geburtsdatum }}</p>
+            {% endif %}
+            <a href="{{ url_for('person_detail', id=person._id) }}" class="btn btn-small">Details</a>
         </div>
-        <div class="card-body">
-          <h2>{{ p.name }}</h2>
-          {% if p.geburtsdatum %}
-            <p class="muted">Geboren: {{ p.geburtsdatum }}</p>
-          {% endif %}
-          <p class="ellipsis">{{ p.beschreibung }}</p>
-        </div>
-      </a>
-    {% else %}
-      <p class="muted">Noch keine Personen angelegt.</p>
-    {% endfor %}
-  </div>
+        {% else %}
+        <p>Keine Personen vorhanden.</p>
+        {% endfor %}
+    </div>
+</div>
 {% endblock %}
