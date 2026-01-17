@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Admin – Benutzer{% endblock %}
+{% block header %}Benutzerverwaltung{% endblock %}
+
+{% block content %}
+<table class="user-table">
+  <tr>
+    <th>Username</th>
+    <th>Email</th>
+    <th>Status</th>
+    <th>Passwort ändern</th>
+    <th>Aktion</th>
+  </tr>
+
+  {% for u in users %}
+  <tr>
+    <td>{{ u.username }}</td>
+    <td>{{ u.email }}</td>
+    <td>
+      {% if u.banned %}❌ Gebannt{% else %}✔️ Aktiv{% endif %}
+    </td>
+
+    <!-- Passwort ändern -->
+    <td>
+      <form method="post" action="{{ url_for('admin_change_password', user_id=u._id) }}">
+        <input type="password" name="password" placeholder="Neues Passwort" required>
+        <button class="btn">Speichern</button>
+      </form>
+    </td>
+
+    <!-- Ban / Unban -->
+    <td>
+      {% if not u.banned %}
+        <form method="post" action="{{ url_for('ban_user', user_id=u._id) }}">
+          <input type="text" name="reason" placeholder="Grund" required>
+          <button class="btn danger">Bannen</button>
+        </form>
+      {% else %}
+        <form method="post" action="{{ url_for('unban_user', user_id=u._id) }}">
+          <button class="btn">Entbannen</button>
+        </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
