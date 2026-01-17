@@ -4,14 +4,10 @@
 {% block header %}Admin-Zugang{% endblock %}
 
 {% block content %}
-<div class="login-box">
+  <h2>Admin-Passwort eingeben</h2>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <form method="post">
     <input type="password" name="password" placeholder="Admin-Passwort" required>
-    <button class="btn">Zugreifen</button>
-
-    {% if error %}
-      <p class="error">{{ error }}</p>
-    {% endif %}
+    <button type="submit">Login</button>
   </form>
-</div>
 {% endblock %}
