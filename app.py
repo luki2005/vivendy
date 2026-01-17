@@ -205,21 +205,7 @@ def event_new(id):
 
     return render_template("event_new.html", person=person)
 
-@app.route("/admin/block-email", methods=["POST"])
-def block_email():
-    email = request.form.get("email").lower()
-    reason = request.form.get("reason", "gesperrt")
 
-    # E-Mail blockieren
-    if not db.blocked_emails.find_one({"email": email}):
-        db.blocked_emails.insert_one({"email": email, "reason": reason})
-
-    # Alle bestehenden User mit der Mail bannen
-    db.users.update_many(
-        {"email": email},
-        {"$set": {"banned": True, "ban_reason": "E-Mail gesperrt"}}
-    )
-    return redirect(url_for("admin_users"))
 
 
 # ===================== Run =====================
