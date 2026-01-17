@@ -8,6 +8,7 @@
     <th>Username</th>
     <th>Email</th>
     <th>Status</th>
+    <th>Passwort ändern</th>
     <th>Aktion</th>
   </tr>
 
@@ -22,15 +23,25 @@
         ✔️ Aktiv
       {% endif %}
     </td>
+
+    <!-- PASSWORT -->
+    <td>
+      <form method="post" action="{{ url_for('admin_change_password', user_id=u._id) }}">
+        <input type="password" name="password" placeholder="Neues Passwort" required>
+        <button class="btn">Speichern</button>
+      </form>
+    </td>
+
+    <!-- BAN / UNBAN -->
     <td>
       {% if not u.banned %}
         <form method="post" action="{{ url_for('ban_user', user_id=u._id) }}">
           <input type="text" name="reason" placeholder="Grund" required>
-          <button class="btn danger" type="submit">Bannen</button>
+          <button class="btn danger">Bannen</button>
         </form>
       {% else %}
         <form method="post" action="{{ url_for('unban_user', user_id=u._id) }}">
-          <button class="btn" type="submit">Entbannen</button>
+          <button class="btn">Entbannen</button>
         </form>
       {% endif %}
     </td>
