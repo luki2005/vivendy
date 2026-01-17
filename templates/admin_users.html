@@ -36,11 +36,13 @@
                     <button type="submit">Sperren</button>
                 </form>
                 {% else %}
-                <!-- Unban / Reset Passwort Button -->
+                <!-- Unban Button -->
                 <form action="{{ url_for('unban_user', user_id=user._id) }}" method="post" style="display:inline;">
                     <button type="submit">Freischalten</button>
                 </form>
-                <form action="{{ url_for('reset_password', user_id=user._id) }}" method="get" style="display:inline;">
+
+                <!-- Trigger Reset Passwort (nur Flag setzen, Benutzer setzt selbst) -->
+                <form action="{{ url_for('trigger_user_reset', user_id=user._id) }}" method="post" style="display:inline;">
                     <button type="submit">Passwort zurücksetzen</button>
                 </form>
                 {% endif %}
