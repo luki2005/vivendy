@@ -17,31 +17,34 @@
     <td>{{ u.username }}</td>
     <td>{{ u.email }}</td>
     <td>
-      {% if u.banned %}❌ Gebannt{% else %}✔️ Aktiv{% endif %}
+      {% if u.banned %} ❌ Gebannt {% else %} ✔️ Aktiv {% endif %}
     </td>
-
-    <!-- Passwort ändern -->
     <td>
-      <form method="post" action="{{ url_for('admin_change_password', user_id=u._id) }}">
+      <form method="post" action="{{ url_for('admin_change_password', user_id=u._id_str) }}">
         <input type="password" name="password" placeholder="Neues Passwort" required>
-        <button class="btn">Speichern</button>
+        <button type="submit">Speichern</button>
       </form>
     </td>
-
-    <!-- Ban / Unban -->
     <td>
       {% if not u.banned %}
-        <form method="post" action="{{ url_for('ban_user', user_id=u._id) }}">
+        <form method="post" action="{{ url_for('ban_user', user_id=u._id_str) }}">
           <input type="text" name="reason" placeholder="Grund" required>
-          <button class="btn danger">Bannen</button>
+          <button type="submit">Bannen</button>
         </form>
       {% else %}
-        <form method="post" action="{{ url_for('unban_user', user_id=u._id) }}">
-          <button class="btn">Entbannen</button>
+        <form method="post" action="{{ url_for('unban_user', user_id=u._id_str) }}">
+          <button type="submit">Entbannen</button>
         </form>
       {% endif %}
     </td>
   </tr>
   {% endfor %}
 </table>
+
+<h3>E-Mail sperren</h3>
+<form method="post" action="{{ url_for('block_email') }}">
+  <input type="email" name="email" placeholder="E-Mail" required>
+  <input type="text" name="reason" placeholder="Grund">
+  <button type="submit">Sperren</button>
+</form>
 {% endblock %}
