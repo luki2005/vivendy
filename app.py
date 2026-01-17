@@ -6,20 +6,18 @@ from pymongo import MongoClient
 from bson import ObjectId
 import os
 
-# ===================== MongoDB =====================
+# ===================== Config =====================
+ADMIN_PANEL_PASSWORD = "falkenauge"
 
 MONGO_URL = "mongodb+srv://lukasfalkenauge2005_db_user:xNOTQGRe5t6hszDU@cluster4.aiejafm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster4"
 client = MongoClient(MONGO_URL)
 db = client["vivwendy"]
-
-# ===================== Flask =====================
 
 app = Flask(__name__)
 app.secret_key = "SUPER_SECRET_KEY"
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads")
 
 # ===================== Helpers =====================
-
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -28,23 +26,17 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-
-def admin_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if session.get("role") != "admin":
-            return redirect(url_for("index"))
-        return f(*args, **kwargs)
-    return wrapper
-
 # ===================== Auth =====================
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         username = request.form["username"]
-        email = request.form["email"]
+        email = request.form["email"].lower()
         password = request.form["password"]
+
+        # Check blocked emails
+        if db.blocked_emails.find_one({"email": email}):
+            return render_template("register.html", error="Diese E-Mail ist gesperrt")
 
         if db.users.find_one({"$or": [{"username": username}, {"email": email}]}):
             return render_template("register.html", error="User existiert bereits")
@@ -57,7 +49,6 @@ def register():
             "ban_reason": None,
             "role": "user"
         })
-
         return redirect(url_for("login"))
 
     return render_template("register.html")
@@ -82,7 +73,6 @@ def login():
         session["user_id"] = str(user["_id"])
         session["username"] = user["username"]
         session["role"] = user.get("role", "user")
-
         return redirect(url_for("index"))
 
     return render_template("login.html")
@@ -93,63 +83,76 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# ===================== Admin =====================
-
-@app.route("/admin/users")
-@login_required
-@admin_required
+# ===================== Admin-Panel =====================
+@app.route("/admin/users", methods=["GET", "POST"])
 def admin_users():
+    # Passwort-Abfrage für Admin-Panel
+    if request.method == "POST":
+        if request.form.get("password") == ADMIN_PANEL_PASSWORD:
+            session["admin_access"] = True
+        else:
+            return render_template("admin_login.html", error="Falsches Passwort")
+
+    if not session.get("admin_access"):
+        return render_template("admin_login.html")
+
     users = list(db.users.find())
     return render_template("admin_users.html", users=users)
 
 
 @app.route("/admin/ban/<user_id>", methods=["POST"])
-@login_required
-@admin_required
 def ban_user(user_id):
     db.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {
-            "banned": True,
-            "ban_reason": request.form.get("reason")
-        }}
+        {"$set": {"banned": True, "ban_reason": request.form.get("reason")}}
     )
     return redirect(url_for("admin_users"))
 
 
 @app.route("/admin/unban/<user_id>", methods=["POST"])
-@login_required
-@admin_required
 def unban_user(user_id):
     db.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {
-            "banned": False,
-            "ban_reason": None
-        }}
+        {"$set": {"banned": False, "ban_reason": None}}
     )
     return redirect(url_for("admin_users"))
 
 
 @app.route("/admin/password/<user_id>", methods=["POST"])
-@login_required
-@admin_required
 def admin_change_password(user_id):
     password = request.form.get("password")
-
     if not password or len(password) < 6:
         return redirect(url_for("admin_users"))
 
     db.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {
-            "password_hash": generate_password_hash(password)
-        }}
+        {"$set": {"password_hash": generate_password_hash(password)}}
     )
     return redirect(url_for("admin_users"))
 
-# ===================== App =====================
 
+@app.route("/admin/block-email", methods=["POST"])
+def block_email():
+    email = request.form.get("email").lower()
+    reason = request.form.get("reason", "gesperrt")
+
+    if not db.blocked_emails.find_one({"email": email}):
+        db.blocked_emails.insert_one({"email": email, "reason": reason})
+
+    # Bestehende User mit dieser E-Mail bannen
+    db.users.update_many(
+        {"email": email},
+        {"$set": {"banned": True, "ban_reason": "E-Mail gesperrt"}}
+    )
+    return redirect(url_for("admin_users"))
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("admin_access", None)
+    return redirect(url_for("index"))
+
+# ===================== App =====================
 @app.route("/")
 @login_required
 def index():
@@ -163,7 +166,6 @@ def person_new():
     if request.method == "POST":
         file = request.files.get("bild")
         filename = None
-
         if file and file.filename:
             os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
             filename = secure_filename(file.filename)
@@ -175,7 +177,6 @@ def person_new():
             "beschreibung": request.form.get("beschreibung"),
             "bild_dateiname": filename
         })
-
         return redirect(url_for("index"))
 
     return render_template("person_new.html")
@@ -193,7 +194,6 @@ def person_detail(id):
 @login_required
 def event_new(id):
     person = db.persons.find_one({"_id": ObjectId(id)})
-
     if request.method == "POST":
         db.events.insert_one({
             "person_id": id,
@@ -206,7 +206,6 @@ def event_new(id):
     return render_template("event_new.html", person=person)
 
 # ===================== Run =====================
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
