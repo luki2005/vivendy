@@ -1,73 +1,62 @@
 {% extends "base.html" %}
 
-{% block title %}Admin – Benutzer{% endblock %}
+{% block title %}Admin Panel{% endblock %}
 {% block header %}Benutzerverwaltung{% endblock %}
 
 {% block content %}
-<div class="admin-container">
-  <h2>Benutzerliste</h2>
-  <table class="user-table">
+<h2>Willkommen, Admin</h2>
+
+<table>
     <thead>
-      <tr>
-        <th>Username</th>
-        <th>Email</th>
-        <th>Status</th>
-        <th>Login-Versuche</th>
-        <th>Aktionen</th>
-      </tr>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Login-Versuche</th>
+            <th>Aktionen</th>
+        </tr>
     </thead>
     <tbody>
-      {% for u in users %}
-      <tr {% if u.banned %}class="banned"{% endif %}>
-        <td>{{ u.username }}</td>
-        <td>{{ u.email }}</td>
-        <td>
-          {% if u.banned %}
-            ❌ Gesperrt
-          {% else %}
-            ✔️ Aktiv
-          {% endif %}
-        </td>
-        <td>{{ u.get("login_attempts", 0) }}</td>
-        <td class="actions">
-          {% if not u.banned %}
-          <form method="post" action="{{ url_for('ban_user', user_id=u._id) }}">
-            <input type="text" name="reason" placeholder="Grund" required>
-            <button class="btn danger">Bannen</button>
-          </form>
-          {% else %}
-          <form method="post" action="{{ url_for('unban_user', user_id=u._id) }}">
-            <button class="btn">Entbannen</button>
-          </form>
-          {% endif %}
+        {% for user in users %}
+        <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+                {% if user.banned %}
+                    ❌ Gesperrt ({{ user.ban_reason }})
+                {% else %}
+                    ✅ Aktiv
+                {% endif %}
+            </td>
+            <td>{{ user.login_attempts or 0 }}</td>
+            <td>
+                {% if not user.banned %}
+                <form action="{{ url_for('ban_user', user_id=user._id) }}" method="post" style="display:inline;">
+                    <input type="text" name="reason" placeholder="Grund" required>
+                    <button type="submit">Sperren</button>
+                </form>
+                {% else %}
+                <form action="{{ url_for('unban_user', user_id=user._id) }}" method="post" style="display:inline;">
+                    <button type="submit">Freischalten</button>
+                </form>
+                {% endif %}
 
-          <form method="post" action="{{ url_for('admin_change_password', user_id=u._id) }}">
-            <input type="password" name="password" placeholder="Neues Passwort" required>
-            <button class="btn">Reset Passwort</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
+                <form action="{{ url_for('admin_change_password', user_id=user._id) }}" method="post" style="display:inline;">
+                    <input type="password" name="password" placeholder="Neues Passwort" required>
+                    <button type="submit">Passwort ändern</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
     </tbody>
-  </table>
+</table>
 
-  <h3>Blockiere E-Mail</h3>
-  <form method="post" action="{{ url_for('block_email') }}" class="block-email-form">
-    <input type="email" name="email" placeholder="E-Mail Adresse" required>
+<h3>Emails blockieren</h3>
+<form action="{{ url_for('block_email') }}" method="post">
+    <input type="email" name="email" placeholder="Email" required>
     <input type="text" name="reason" placeholder="Grund (optional)">
-    <button class="btn danger">Blockieren</button>
-  </form>
-</div>
+    <button type="submit">Blockieren</button>
+</form>
 
-<style>
-.admin-container { padding: 20px; background: #f9f9f9; border-radius: 10px; }
-.user-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-.user-table th, .user-table td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-.user-table tr.banned { background-color: #ffe6e6; }
-.actions form { display: inline-block; margin-right: 5px; }
-.btn { padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; }
-.btn.danger { background-color: #e74c3c; color: #fff; }
-.btn:hover { opacity: 0.9; }
-.block-email-form input { margin-right: 5px; padding: 5px; }
-</style>
+<a href="{{ url_for('admin_logout') }}">Admin Logout</a>
 {% endblock %}
