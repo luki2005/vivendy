@@ -125,28 +125,36 @@ def allow_reset(user_id):
     db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"reset_allowed": True, "banned": False, "ban_reason": None, "login_attempts": 0}})
     return redirect(url_for("admin_users"))
 
-
-@app.route("/reset-password/<user_id>", methods=["GET", "POST"])
+# Admin initiiert Passwort-Reset, User bekommt Eingabeseite
+@app.route("/admin/reset-password/<user_id>", methods=["GET", "POST"])
 @login_required
+@admin_only
 def reset_password(user_id):
     user = db.users.find_one({"_id": ObjectId(user_id)})
-    if not user or not user.get("reset_allowed"):
-        flash("Kein Reset erlaubt.")
-        return redirect(url_for("index"))
 
     if request.method == "POST":
-        new_pass = request.form["password"]
-        if not new_pass or len(new_pass) < 6:
-            flash("Passwort mindestens 6 Zeichen")
-            return redirect(url_for("reset_password", user_id=user_id))
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
 
-        db.users.update_one({"_id": ObjectId(user_id)},
-                            {"$set": {"password_hash": generate_password_hash(new_pass),
-                                      "reset_allowed": False}})
-        flash("Passwort erfolgreich geändert.")
-        return redirect(url_for("login"))
+        if not new_password or len(new_password) < 6:
+            return render_template("reset_password.html", user=user, error="Passwort muss mindestens 6 Zeichen haben")
+        if new_password != confirm_password:
+            return render_template("reset_password.html", user=user, error="Passwörter stimmen nicht überein")
+
+        # Passwort setzen und Bann + Login-Versuche zurücksetzen
+        db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {
+                "password_hash": generate_password_hash(new_password),
+                "banned": False,
+                "ban_reason": None,
+                "login_attempts": 0
+            }}
+        )
+        return redirect(url_for("login", message="Passwort erfolgreich zurückgesetzt. Bitte einloggen."))
 
     return render_template("reset_password.html", user=user)
+
 
 
 # ===================== Personen & Events =====================
