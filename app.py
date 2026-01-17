@@ -44,7 +44,6 @@ def register():
         email = request.form["email"].lower()
         password = request.form["password"]
 
-        # Check blocked emails
         if db.blocked_emails.find_one({"email": email}):
             return render_template("register.html", error="Diese E-Mail ist gesperrt")
 
@@ -58,7 +57,7 @@ def register():
             "banned": False,
             "ban_reason": None,
             "role": "user",
-            "login_attempts": 0  # neue Spalte für Login-Versuche
+            "login_attempts": 0
         })
         return redirect(url_for("login"))
     return render_template("register.html")
@@ -75,13 +74,10 @@ def login():
         if not user:
             return render_template("login.html", error="Falsche Login-Daten")
 
-        # Check if account is banned
         if user.get("banned"):
             return render_template("banned.html", reason=user.get("ban_reason"))
 
-        # Check password
         if not check_password_hash(user["password_hash"], password):
-            # Login Attempt erhöhen
             attempts = user.get("login_attempts", 0) + 1
             update_data = {"login_attempts": attempts}
             if attempts >= MAX_LOGIN_ATTEMPTS:
@@ -90,7 +86,7 @@ def login():
             db.users.update_one({"_id": user["_id"]}, {"$set": update_data})
 
             if attempts >= MAX_LOGIN_ATTEMPTS:
-                return render_template("banned.html", reason="Passwort 4 mal falsch eingegeben. Bitte den Moderator kontaktieren.")
+                return render_template("banned.html", reason="Passwort 4 mal falsch eingegeben. Bitte Moderator kontaktieren.")
 
             return render_template("login.html", error="Falsche Login-Daten")
 
@@ -98,7 +94,7 @@ def login():
         db.users.update_one({"_id": user["_id"]}, {"$set": {"login_attempts": 0}})
 
         session["user_id"] = str(user["_id"])
-        session["username"] = user["email"]  # Email für Admin Check
+        session["username"] = user["email"]
         session["role"] = user.get("role", "user")
         return redirect(url_for("index"))
     return render_template("login.html")
@@ -151,11 +147,8 @@ def admin_change_password(user_id):
 def block_email():
     email = request.form.get("email").lower()
     reason = request.form.get("reason", "gesperrt")
-
     if not db.blocked_emails.find_one({"email": email}):
         db.blocked_emails.insert_one({"email": email, "reason": reason})
-
-    # Bestehende User mit dieser E-Mail bannen
     db.users.update_many({"email": email}, {"$set": {"banned": True, "ban_reason": "E-Mail gesperrt"}})
     return redirect(url_for("admin_users"))
 
@@ -185,7 +178,6 @@ def person_new():
             os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-
         db.persons.insert_one({
             "name": request.form["name"],
             "geburtsdatum": request.form.get("geburtsdatum"),
