@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Zugang gesperrt{% endblock %}
+{% block header %}Zugang gesperrt{% endblock %}
+
+{% block content %}
+  <div class="banned-box">
+    <h2>❌ Du wurdest gebannt</h2>
+    <p>Ein Moderator hat deinen Zugang gesperrt.</p>
+
+    {% if reason %}
+      <p><strong>Grund:</strong> {{ reason }}</p>
+    {% endif %}
+
+    <p>Wenn du glaubst, dass das ein Fehler ist, kontaktiere den Administrator.</p>
+  </div>
+{% endblock %}
