@@ -4,26 +4,12 @@
 {% block header %}Zugang gesperrt{% endblock %}
 
 {% block content %}
-<div class="banned-box">
-  <h2>❌ Zugriff auf Account gesperrt</h2>
-  <p>Dein Account wurde gesperrt, um deinen Username zu schützen.</p>
-  {% if reason %}
-    <p><strong>Grund:</strong> {{ reason }}</p>
-  {% endif %}
-  <p>Kontaktiere den Moderator, um dein Passwort zurückzusetzen.</p>
+<div class="banned-box" style="padding:20px; border:2px solid red; border-radius:10px; max-width:600px; margin:auto; text-align:center;">
+    <h2>❌ Dein Zugang wurde gesperrt</h2>
+    <p>Dein Account wurde aus Sicherheitsgründen blockiert.</p>
+    {% if reason %}
+        <p><strong>Grund:</strong> {{ reason }}</p>
+    {% endif %}
+    <p>Wenn du denkst, dass dies ein Fehler ist, kontaktiere den Moderator, um dein Passwort zurücksetzen zu lassen.</p>
 </div>
-
-<style>
-.banned-box {
-  background-color: #ffe6e6;
-  border: 1px solid #e74c3c;
-  padding: 30px;
-  border-radius: 10px;
-  max-width: 600px;
-  margin: 50px auto;
-  text-align: center;
-}
-.banned-box h2 { color: #e74c3c; }
-.banned-box p { font-size: 16px; margin: 10px 0; }
-</style>
 {% endblock %}
