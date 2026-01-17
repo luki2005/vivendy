@@ -7,6 +7,9 @@ from bson import ObjectId
 import os
 
 # ===================== Config =====================
+ADMIN_EMAIL = "lukas.falkenauge2005@gmail.com"
+ADMIN_PASSWORD = "falkenauge"
+
 MONGO_URL = "mongodb+srv://lukasfalkenauge2005_db_user:xNOTQGRe5t6hszDU@cluster4.aiejafm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster4"
 client = MongoClient(MONGO_URL)
 db = client["vivwendy"]
@@ -24,10 +27,11 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-def admin_required(f):
+def admin_only(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if session.get("role") != "admin":
+        # Nur Admin darf rein
+        if session.get("username") != ADMIN_EMAIL:
             return redirect(url_for("index"))
         return f(*args, **kwargs)
     return wrapper
@@ -75,7 +79,7 @@ def login():
             return render_template("banned.html", reason=user.get("ban_reason"))
 
         session["user_id"] = str(user["_id"])
-        session["username"] = user["username"]
+        session["username"] = user["email"]  # email als username für Admin Check
         session["role"] = user.get("role", "user")
         return redirect(url_for("index"))
     return render_template("login.html")
@@ -86,14 +90,25 @@ def logout():
     return redirect(url_for("login"))
 
 # ===================== Admin =====================
-@app.route("/admin/users")
-@admin_required
+@app.route("/admin/users", methods=["GET", "POST"])
+@login_required
+@admin_only
 def admin_users():
+    # Optionale Passwort-Abfrage für Admin-Panel
+    if request.method == "POST":
+        if request.form.get("password") != ADMIN_PASSWORD:
+            return render_template("admin_login.html", error="Falsches Passwort")
+        session["admin_access"] = True
+
+    if not session.get("admin_access"):
+        return render_template("admin_login.html")
+
     users = list(db.users.find())
     return render_template("admin_users.html", users=users)
 
 @app.route("/admin/ban/<user_id>", methods=["POST"])
-@admin_required
+@login_required
+@admin_only
 def ban_user(user_id):
     db.users.update_one(
         {"_id": ObjectId(user_id)},
@@ -102,7 +117,8 @@ def ban_user(user_id):
     return redirect(url_for("admin_users"))
 
 @app.route("/admin/unban/<user_id>", methods=["POST"])
-@admin_required
+@login_required
+@admin_only
 def unban_user(user_id):
     db.users.update_one(
         {"_id": ObjectId(user_id)},
@@ -111,7 +127,8 @@ def unban_user(user_id):
     return redirect(url_for("admin_users"))
 
 @app.route("/admin/password/<user_id>", methods=["POST"])
-@admin_required
+@login_required
+@admin_only
 def admin_change_password(user_id):
     password = request.form.get("password")
     if not password or len(password) < 6:
@@ -124,7 +141,8 @@ def admin_change_password(user_id):
     return redirect(url_for("admin_users"))
 
 @app.route("/admin/block-email", methods=["POST"])
-@admin_required
+@login_required
+@admin_only
 def block_email():
     email = request.form.get("email").lower()
     reason = request.form.get("reason", "gesperrt")
@@ -138,6 +156,13 @@ def block_email():
         {"$set": {"banned": True, "ban_reason": "E-Mail gesperrt"}}
     )
     return redirect(url_for("admin_users"))
+
+@app.route("/admin/logout")
+@login_required
+@admin_only
+def admin_logout():
+    session.pop("admin_access", None)
+    return redirect(url_for("index"))
 
 # ===================== App =====================
 @app.route("/")
