@@ -7,8 +7,6 @@ from bson import ObjectId
 import os
 
 # ===================== Config =====================
-ADMIN_PANEL_PASSWORD = "falkenauge"
-
 MONGO_URL = "mongodb+srv://lukasfalkenauge2005_db_user:xNOTQGRe5t6hszDU@cluster4.aiejafm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster4"
 client = MongoClient(MONGO_URL)
 db = client["vivwendy"]
@@ -23,6 +21,14 @@ def login_required(f):
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
             return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
+
+def admin_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if session.get("role") != "admin":
+            return redirect(url_for("index"))
         return f(*args, **kwargs)
     return wrapper
 
@@ -50,9 +56,7 @@ def register():
             "role": "user"
         })
         return redirect(url_for("login"))
-
     return render_template("register.html")
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -74,33 +78,22 @@ def login():
         session["username"] = user["username"]
         session["role"] = user.get("role", "user")
         return redirect(url_for("index"))
-
     return render_template("login.html")
-
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# ===================== Admin-Panel =====================
-@app.route("/admin/users", methods=["GET", "POST"])
+# ===================== Admin =====================
+@app.route("/admin/users")
+@admin_required
 def admin_users():
-    # Passwort-Abfrage für Admin-Panel
-    if request.method == "POST":
-        if request.form.get("password") == ADMIN_PANEL_PASSWORD:
-            session["admin_access"] = True
-        else:
-            return render_template("admin_login.html", error="Falsches Passwort")
-
-    if not session.get("admin_access"):
-        return render_template("admin_users.html")
-
     users = list(db.users.find())
     return render_template("admin_users.html", users=users)
 
-
 @app.route("/admin/ban/<user_id>", methods=["POST"])
+@admin_required
 def ban_user(user_id):
     db.users.update_one(
         {"_id": ObjectId(user_id)},
@@ -108,8 +101,8 @@ def ban_user(user_id):
     )
     return redirect(url_for("admin_users"))
 
-
 @app.route("/admin/unban/<user_id>", methods=["POST"])
+@admin_required
 def unban_user(user_id):
     db.users.update_one(
         {"_id": ObjectId(user_id)},
@@ -117,8 +110,8 @@ def unban_user(user_id):
     )
     return redirect(url_for("admin_users"))
 
-
 @app.route("/admin/password/<user_id>", methods=["POST"])
+@admin_required
 def admin_change_password(user_id):
     password = request.form.get("password")
     if not password or len(password) < 6:
@@ -130,8 +123,8 @@ def admin_change_password(user_id):
     )
     return redirect(url_for("admin_users"))
 
-
 @app.route("/admin/block-email", methods=["POST"])
+@admin_required
 def block_email():
     email = request.form.get("email").lower()
     reason = request.form.get("reason", "gesperrt")
@@ -146,19 +139,12 @@ def block_email():
     )
     return redirect(url_for("admin_users"))
 
-
-@app.route("/admin/logout")
-def admin_logout():
-    session.pop("admin_access", None)
-    return redirect(url_for("index"))
-
 # ===================== App =====================
 @app.route("/")
 @login_required
 def index():
     personen = list(db.persons.find())
     return render_template("index.html", personen=personen)
-
 
 @app.route("/person/new", methods=["GET", "POST"])
 @login_required
@@ -178,9 +164,7 @@ def person_new():
             "bild_dateiname": filename
         })
         return redirect(url_for("index"))
-
     return render_template("person_new.html")
-
 
 @app.route("/person/<id>")
 @login_required
@@ -188,7 +172,6 @@ def person_detail(id):
     person = db.persons.find_one({"_id": ObjectId(id)})
     events = list(db.events.find({"person_id": id}))
     return render_template("person_detail.html", person=person, events=events)
-
 
 @app.route("/person/<id>/event/new", methods=["GET", "POST"])
 @login_required
@@ -202,11 +185,7 @@ def event_new(id):
             "beschreibung": request.form.get("beschreibung")
         })
         return redirect(url_for("person_detail", id=id))
-
     return render_template("event_new.html", person=person)
-
-
-
 
 # ===================== Run =====================
 if __name__ == "__main__":
