@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
@@ -57,12 +57,10 @@ def register():
             "banned": False,
             "ban_reason": None,
             "role": "user",
-            "login_attempts": 0,
-            "reset_allowed": False  # neu für Passwort-Reset
+            "login_attempts": 0
         })
         return redirect(url_for("login"))
     return render_template("register.html")
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -71,10 +69,11 @@ def login():
         password = request.form["password"]
 
         user = db.users.find_one({"$or": [{"username": login_input}, {"email": login_input}]})
+
         if not user:
             return render_template("login.html", error="Falsche Login-Daten")
 
-        # Account gesperrt prüfen
+        # Account gesperrt
         if user.get("banned"):
             return render_template("banned.html", reason=user.get("ban_reason"))
 
@@ -88,25 +87,23 @@ def login():
             db.users.update_one({"_id": user["_id"]}, {"$set": update_data})
 
             if attempts >= MAX_LOGIN_ATTEMPTS:
-                return render_template("banned.html",
-                                       reason="Passwort 4 mal falsch eingegeben. Bitte Moderator kontaktieren.")
+                return render_template("banned.html", reason="Passwort 4 mal falsch eingegeben. Bitte Moderator kontaktieren.")
 
             return render_template("login.html", error="Falsche Login-Daten")
 
-        # Login erfolgreich: Login-Versuche zurücksetzen
+        # Reset Login-Versuche bei Erfolg
         db.users.update_one({"_id": user["_id"]}, {"$set": {"login_attempts": 0}})
+
         session["user_id"] = str(user["_id"])
         session["username"] = user["email"]
         session["role"] = user.get("role", "user")
         return redirect(url_for("index"))
     return render_template("login.html")
 
-
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
-
 
 # ===================== Admin Panel =====================
 @app.route("/admin/users")
@@ -116,16 +113,26 @@ def admin_users():
     users = list(db.users.find())
     return render_template("admin_users.html", users=users)
 
-
-@app.route("/admin/allow-reset/<user_id>", methods=["POST"])
+@app.route("/admin/ban/<user_id>", methods=["POST"])
 @login_required
 @admin_only
-def allow_reset(user_id):
-    # Admin gibt User die Berechtigung zum Passwort-Reset
-    db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"reset_allowed": True, "banned": False, "ban_reason": None, "login_attempts": 0}})
+def ban_user(user_id):
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"banned": True, "ban_reason": request.form.get("reason")}}
+    )
     return redirect(url_for("admin_users"))
 
-# Admin initiiert Passwort-Reset, User bekommt Eingabeseite
+@app.route("/admin/unban/<user_id>", methods=["POST"])
+@login_required
+@admin_only
+def unban_user(user_id):
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"banned": False, "ban_reason": None, "login_attempts": 0}}
+    )
+    return redirect(url_for("admin_users"))
+
 @app.route("/admin/reset-password/<user_id>", methods=["GET", "POST"])
 @login_required
 @admin_only
@@ -141,7 +148,6 @@ def reset_password(user_id):
         if new_password != confirm_password:
             return render_template("reset_password.html", user=user, error="Passwörter stimmen nicht überein")
 
-        # Passwort setzen und Bann + Login-Versuche zurücksetzen
         db.users.update_one(
             {"_id": ObjectId(user_id)},
             {"$set": {
@@ -151,11 +157,30 @@ def reset_password(user_id):
                 "login_attempts": 0
             }}
         )
-        return redirect(url_for("login", message="Passwort erfolgreich zurückgesetzt. Bitte einloggen."))
+        return redirect(url_for("login", message="Passwort erfolgreich zurückgesetzt"))
 
     return render_template("reset_password.html", user=user)
 
+@app.route("/admin/block-email", methods=["POST"])
+@login_required
+@admin_only
+def block_email():
+    email = request.form.get("email").lower()
+    reason = request.form.get("reason", "gesperrt")
+    if not db.blocked_emails.find_one({"email": email}):
+        db.blocked_emails.insert_one({"email": email, "reason": reason})
+    db.users.update_many(
+        {"email": email},
+        {"$set": {"banned": True, "ban_reason": "E-Mail gesperrt"}}
+    )
+    return redirect(url_for("admin_users"))
 
+@app.route("/admin/logout")
+@login_required
+@admin_only
+def admin_logout():
+    session.pop("admin_access", None)
+    return redirect(url_for("index"))
 
 # ===================== Personen & Events =====================
 @app.route("/")
@@ -163,7 +188,6 @@ def reset_password(user_id):
 def index():
     personen = list(db.persons.find())
     return render_template("index.html", personen=personen)
-
 
 @app.route("/person/new", methods=["GET", "POST"])
 @login_required
@@ -184,19 +208,17 @@ def person_new():
         return redirect(url_for("index"))
     return render_template("person_new.html")
 
-
 @app.route("/person/<id>")
 @login_required
 def person_detail(id):
-    person = db.persons.find_one({"_id": ObjectId(id)})
+    person = db.users.find_one({"_id": ObjectId(id)})
     events = list(db.events.find({"person_id": id}))
     return render_template("person_detail.html", person=person, events=events)
-
 
 @app.route("/person/<id>/event/new", methods=["GET", "POST"])
 @login_required
 def event_new(id):
-    person = db.persons.find_one({"_id": ObjectId(id)})
+    person = db.users.find_one({"_id": ObjectId(id)})
     if request.method == "POST":
         db.events.insert_one({
             "person_id": id,
@@ -206,7 +228,6 @@ def event_new(id):
         })
         return redirect(url_for("person_detail", id=id))
     return render_template("event_new.html", person=person)
-
 
 # ===================== Run =====================
 if __name__ == "__main__":
