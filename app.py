@@ -161,6 +161,14 @@ def event_new(id):
 
     return render_template('event_new.html', person=person)
 
+@app.route('/person/<id>')
+@login_required
+def person_detail(id):
+    person = db.persons.find_one({"_id": ObjectId(id)})
+    events = list(db.events.find({"person_id": id}))
+    return render_template('person_detail.html', person=person, events=events)
+
+
 
 if __name__ == '__main__':
     with app.app_context():
