@@ -31,20 +31,19 @@
             <td>{{ user.login_attempts or 0 }}</td>
             <td>
                 {% if not user.banned %}
+                <!-- Ban Button -->
                 <form action="{{ url_for('ban_user', user_id=user._id) }}" method="post" style="display:inline;">
-                    <input type="text" name="reason" placeholder="Grund" required>
                     <button type="submit">Sperren</button>
                 </form>
                 {% else %}
+                <!-- Unban / Reset Passwort Button -->
                 <form action="{{ url_for('unban_user', user_id=user._id) }}" method="post" style="display:inline;">
                     <button type="submit">Freischalten</button>
                 </form>
-                {% endif %}
-
-                <form action="{{ url_for('admin_change_password', user_id=user._id) }}" method="post" style="display:inline;">
-                    <input type="password" name="password" placeholder="Neues Passwort" required>
-                    <button type="submit">Passwort ändern</button>
+                <form action="{{ url_for('reset_password', user_id=user._id) }}" method="get" style="display:inline;">
+                    <button type="submit">Passwort zurücksetzen</button>
                 </form>
+                {% endif %}
             </td>
         </tr>
         {% endfor %}
