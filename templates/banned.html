@@ -4,12 +4,63 @@
 {% block header %}Zugang gesperrt{% endblock %}
 
 {% block content %}
-<div class="banned-box">
-  <h2>❌ Du wurdest gebannt</h2>
-  <p>Ein Moderator hat deinen Zugang gesperrt.</p>
-  {% if reason %}
-    <p><strong>Grund:</strong> {{ reason }}</p>
-  {% endif %}
-  <p>Wenn du glaubst, dass das ein Fehler ist, kontaktiere den Administrator.</p>
+<div class="banned-container">
+  <div class="banned-box">
+    <h2>❌ Zugang gesperrt</h2>
+    <p>Ein Moderator hat deinen Zugang vorübergehend gesperrt.</p>
+    {% if reason %}
+      <p><strong>Grund:</strong> {{ reason }}</p>
+    {% endif %}
+    <p>Wenn du glaubst, dass dies ein Fehler ist, kontaktiere bitte den Administrator.</p>
+    <a href="{{ url_for('login') }}" class="btn">Zurück zum Login</a>
+  </div>
 </div>
+
+<style>
+  .banned-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 20px;
+    background-color: #fdf2f2;
+  }
+
+  .banned-box {
+    background-color: #fff5f5;
+    border: 2px solid #f44336;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  }
+
+  .banned-box h2 {
+    color: #d32f2f;
+    margin-bottom: 15px;
+  }
+
+  .banned-box p {
+    color: #555;
+    margin: 8px 0;
+    line-height: 1.5;
+  }
+
+  .banned-box a.btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 25px;
+    background-color: #d32f2f;
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: background-color 0.3s;
+  }
+
+  .banned-box a.btn:hover {
+    background-color: #b71c1c;
+  }
+</style>
 {% endblock %}
