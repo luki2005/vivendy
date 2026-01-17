@@ -57,7 +57,8 @@ def register():
             "banned": False,
             "ban_reason": None,
             "role": "user",
-            "login_attempts": 0
+            "login_attempts": 0,
+            "needs_reset": False  # Für Passwort-Reset-Flow
         })
         return redirect(url_for("login"))
     return render_template("register.html")
@@ -129,20 +130,31 @@ def ban_user(user_id):
 def unban_user(user_id):
     db.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"banned": False, "ban_reason": None, "login_attempts": 0}}
+        {"$set": {"banned": False, "ban_reason": None, "login_attempts": 0, "needs_reset": False}}
     )
     return redirect(url_for("admin_users"))
 
-@app.route("/admin/reset-password/<user_id>", methods=["GET", "POST"])
+# Admin klickt "Reset Passwort" → User bekommt Formular
+@app.route("/admin/trigger-reset/<user_id>", methods=["POST"])
 @login_required
 @admin_only
+def trigger_user_reset(user_id):
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"needs_reset": True}}
+    )
+    return redirect(url_for("admin_users"))
+
+# User setzt eigenes Passwort
+@app.route("/reset-password/<user_id>", methods=["GET", "POST"])
 def reset_password(user_id):
     user = db.users.find_one({"_id": ObjectId(user_id)})
+    if not user or not user.get("needs_reset"):
+        return redirect(url_for("login"))
 
     if request.method == "POST":
         new_password = request.form.get("new_password")
         confirm_password = request.form.get("confirm_password")
-
         if not new_password or len(new_password) < 6:
             return render_template("reset_password.html", user=user, error="Passwort muss mindestens 6 Zeichen haben")
         if new_password != confirm_password:
@@ -154,10 +166,11 @@ def reset_password(user_id):
                 "password_hash": generate_password_hash(new_password),
                 "banned": False,
                 "ban_reason": None,
-                "login_attempts": 0
+                "login_attempts": 0,
+                "needs_reset": False
             }}
         )
-        return redirect(url_for("login", message="Passwort erfolgreich zurückgesetzt"))
+        return redirect(url_for("login"))
 
     return render_template("reset_password.html", user=user)
 
@@ -211,14 +224,14 @@ def person_new():
 @app.route("/person/<id>")
 @login_required
 def person_detail(id):
-    person = db.users.find_one({"_id": ObjectId(id)})
+    person = db.persons.find_one({"_id": ObjectId(id)})
     events = list(db.events.find({"person_id": id}))
     return render_template("person_detail.html", person=person, events=events)
 
 @app.route("/person/<id>/event/new", methods=["GET", "POST"])
 @login_required
 def event_new(id):
-    person = db.users.find_one({"_id": ObjectId(id)})
+    person = db.persons.find_one({"_id": ObjectId(id)})
     if request.method == "POST":
         db.events.insert_one({
             "person_id": id,
