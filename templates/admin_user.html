@@ -3,6 +3,18 @@
 {% block header %}Benutzerverwaltung{% endblock %}
 
 {% block content %}
+
+<!-- E-Mail Block Formular -->
+<div class="email-block">
+  <h3>E-Mail-Adresse sperren</h3>
+  <form method="post" action="{{ url_for('block_email') }}">
+    <input type="email" name="email" placeholder="E-Mail-Adresse" required>
+    <input type="text" name="reason" placeholder="Grund">
+    <button class="btn danger">E-Mail sperren</button>
+  </form>
+</div>
+
+<!-- User Tabelle -->
 <table class="user-table">
   <tr>
     <th>Username</th>
@@ -24,7 +36,7 @@
       {% endif %}
     </td>
 
-    <!-- PASSWORT -->
+    <!-- Passwort ändern -->
     <td>
       <form method="post" action="{{ url_for('admin_change_password', user_id=u._id) }}">
         <input type="password" name="password" placeholder="Neues Passwort" required>
@@ -32,7 +44,7 @@
       </form>
     </td>
 
-    <!-- BAN / UNBAN -->
+    <!-- Ban / Unban -->
     <td>
       {% if not u.banned %}
         <form method="post" action="{{ url_for('ban_user', user_id=u._id) }}">
@@ -48,4 +60,5 @@
   </tr>
   {% endfor %}
 </table>
+
 {% endblock %}
