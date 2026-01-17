@@ -1,18 +1,28 @@
 {% extends "base.html" %}
+
 {% block title %}Neues Event{% endblock %}
 {% block header %}Neues Event für {{ person.name }}{% endblock %}
 
 {% block content %}
-<form method="post" class="form-box">
-  <label>Titel:</label>
-  <input type="text" name="titel" required>
+<div class="form-container">
+    <form action="{{ url_for('event_new', id=person._id) }}" method="post">
+        <div class="form-group">
+            <label>Titel:</label>
+            <input type="text" name="titel" placeholder="Event Titel" required>
+        </div>
 
-  <label>Datum:</label>
-  <input type="date" name="datum" required>
+        <div class="form-group">
+            <label>Datum:</label>
+            <input type="date" name="datum" required>
+        </div>
 
-  <label>Beschreibung:</label>
-  <textarea name="beschreibung"></textarea>
+        <div class="form-group">
+            <label>Beschreibung:</label>
+            <textarea name="beschreibung" placeholder="Beschreibung (optional)"></textarea>
+        </div>
 
-  <button class="btn">Speichern</button>
-</form>
+        <button type="submit" class="btn">Event erstellen</button>
+    </form>
+</div>
+<a href="{{ url_for('person_detail', id=person._id) }}" class="btn-back">Zurück zu {{ person.name }}</a>
 {% endblock %}
