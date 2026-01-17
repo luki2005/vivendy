@@ -374,12 +374,6 @@ def person_detail(id):
     events = list(db.events.find({"person_id": id}))
     return render_template('person_detail.html', person=person, events=events)
 
-@app.route('/admin/users')
-@login_required
-def admin_users():
-    users = list(db.users.find())
-    return render_template("admin_users.html", users=users)
-
 
 
 if __name__ == '__main__':
