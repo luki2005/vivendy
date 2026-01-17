@@ -44,15 +44,14 @@ def register():
 
         hashed = generate_password_hash(password)
 
-    db.users.insert_one({
-    "username": username,
-    "email": email,
-    "password_hash": hashed,
-    "banned": False,
-    "ban_reason": None,
-    "role": "user"
-})
-
+        db.users.insert_one({
+            "username": username,
+            "email": email,
+            "password_hash": hashed,
+            "banned": False,
+            "ban_reason": None,
+            "role": "user"
+        })
 
         return redirect(url_for('login'))
 
@@ -87,11 +86,39 @@ def login():
     return render_template('login.html')
 
 
-
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+# ---------- Admin Routes ----------
+
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    users = list(db.users.find())
+    return render_template("admin_users.html", users=users)
+
+
+@app.route('/admin/ban/<user_id>', methods=['POST'])
+@login_required
+def ban_user(user_id):
+    reason = request.form.get("reason")
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"banned": True, "ban_reason": reason}}
+    )
+    return redirect(url_for("admin_users"))
+
+
+@app.route('/admin/unban/<user_id>', methods=['POST'])
+@login_required
+def unban_user(user_id):
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"banned": False, "ban_reason": None}}
+    )
+    return redirect(url_for("admin_users"))
 
 # ---------- App Routes ----------
 
