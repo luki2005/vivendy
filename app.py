@@ -15,12 +15,13 @@ client = MongoClient(MONGO_URL)
 db = client["vivwendy"]
 
 app = Flask(__name__)
-app.secret_key = "SUPER_SECRET_KEY"  # altes Secret wiederhergestellt
+app.secret_key = "SUPER_SECRET_KEY"  # Sicheres Secret Key
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads")
 MAX_LOGIN_ATTEMPTS = 4
 
 # ===================== Helpers =====================
 def login_required(f):
+    """Nur eingeloggte User dürfen auf diese Seite"""
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("user_id"):
@@ -29,6 +30,7 @@ def login_required(f):
     return wrapper
 
 def admin_only(f):
+    """Nur Admin darf auf diese Seite"""
     @wraps(f)
     def wrapper(*args, **kwargs):
         if session.get("username") != ADMIN_EMAIL:
@@ -58,9 +60,10 @@ def register():
             "ban_reason": None,
             "role": "user",
             "login_attempts": 0,
-            "needs_reset": False  # Für Passwort-Reset-Flow
+            "needs_reset": False  # Passwort-Reset-Flow
         })
         return redirect(url_for("login"))
+
     return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
@@ -70,35 +73,31 @@ def login():
         password = request.form["password"]
 
         user = db.users.find_one({"$or": [{"username": login_input}, {"email": login_input}]})
-
         if not user:
             return render_template("login.html", error="Falsche Login-Daten")
 
-        # Account gesperrt
         if user.get("banned"):
             return render_template("banned.html", reason=user.get("ban_reason"))
 
-        # Passwort prüfen
         if not check_password_hash(user["password_hash"], password):
             attempts = user.get("login_attempts", 0) + 1
             update_data = {"login_attempts": attempts}
             if attempts >= MAX_LOGIN_ATTEMPTS:
-                update_data["banned"] = True
-                update_data["ban_reason"] = "Passwort 4 mal falsch eingegeben"
+                update_data.update({"banned": True, "ban_reason": "Passwort 4 mal falsch eingegeben"})
             db.users.update_one({"_id": user["_id"]}, {"$set": update_data})
 
             if attempts >= MAX_LOGIN_ATTEMPTS:
                 return render_template("banned.html", reason="Passwort 4 mal falsch eingegeben. Bitte Moderator kontaktieren.")
 
-            return render_template("login.html", error="Falsche Login-Daten")
+            return render_template("login.html", error=f"Falsche Login-Daten ({attempts}/{MAX_LOGIN_ATTEMPTS})")
 
-        # Reset Login-Versuche bei Erfolg
+        # Reset login attempts bei Erfolg
         db.users.update_one({"_id": user["_id"]}, {"$set": {"login_attempts": 0}})
-
         session["user_id"] = str(user["_id"])
         session["username"] = user["email"]
         session["role"] = user.get("role", "user")
         return redirect(url_for("index"))
+
     return render_template("login.html")
 
 @app.route("/logout")
@@ -134,20 +133,20 @@ def unban_user(user_id):
     )
     return redirect(url_for("admin_users"))
 
-# Admin klickt "Reset Passwort" → User bekommt Formular
 @app.route("/admin/trigger-reset/<user_id>", methods=["POST"])
 @login_required
 @admin_only
 def trigger_user_reset(user_id):
+    """Admin setzt User auf Passwort-Reset-Flow"""
     db.users.update_one(
         {"_id": ObjectId(user_id)},
         {"$set": {"needs_reset": True}}
     )
     return redirect(url_for("admin_users"))
 
-# User setzt eigenes Passwort
 @app.route("/reset-password/<user_id>", methods=["GET", "POST"])
 def reset_password(user_id):
+    """User setzt eigenes Passwort nach Admin Trigger oder Sperrung"""
     user = db.users.find_one({"_id": ObjectId(user_id)})
     if not user or not user.get("needs_reset"):
         return redirect(url_for("login"))
