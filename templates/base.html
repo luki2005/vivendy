@@ -2,15 +2,32 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}{% endblock %}</title>
+    <title>{% block title %}Vivendy{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 <header>
-    <h1>{% block header %}{% endblock %}</h1>
+    <h1>Vivendy</h1>
+    <nav>
+        <a href="{{ url_for('index') }}">Home</a>
+        {% if session.get('role') == 'admin' %}
+            <a href="{{ url_for('admin_users') }}">Admin Panel</a>
+        {% endif %}
+        {% if session.get('user_id') %}
+            <a href="{{ url_for('logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+            <a href="{{ url_for('register') }}">Register</a>
+        {% endif %}
+    </nav>
 </header>
 <main>
+    {% block header %}{% endblock %}
     {% block content %}{% endblock %}
 </main>
+<footer>
+    <p>&copy; 2026 Vivendy</p>
+</footer>
 </body>
 </html>
