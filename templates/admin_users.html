@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}Admin Panel{% endblock %}
-{% block header %}Benutzerverwaltung{% endblock %}
+{% block header %}<h2>Benutzerverwaltung</h2>{% endblock %}
 
 {% block content %}
-<h2>Willkommen, Admin</h2>
-
-<table>
+<table class="user-table">
     <thead>
         <tr>
             <th>Username</th>
@@ -31,19 +29,16 @@
             <td>{{ user.login_attempts or 0 }}</td>
             <td>
                 {% if not user.banned %}
-                <!-- Ban Button -->
                 <form action="{{ url_for('ban_user', user_id=user._id) }}" method="post" style="display:inline;">
+                    <input type="text" name="reason" placeholder="Grund" required>
                     <button type="submit">Sperren</button>
                 </form>
                 {% else %}
-                <!-- Unban Button -->
                 <form action="{{ url_for('unban_user', user_id=user._id) }}" method="post" style="display:inline;">
                     <button type="submit">Freischalten</button>
                 </form>
-
-                <!-- Trigger Reset Passwort (nur Flag setzen, Benutzer setzt selbst) -->
                 <form action="{{ url_for('trigger_user_reset', user_id=user._id) }}" method="post" style="display:inline;">
-                    <button type="submit">Passwort zurücksetzen</button>
+                    <button type="submit">Reset Passwort</button>
                 </form>
                 {% endif %}
             </td>
@@ -53,11 +48,9 @@
 </table>
 
 <h3>Emails blockieren</h3>
-<form action="{{ url_for('block_email') }}" method="post">
+<form action="{{ url_for('block_email') }}" method="post" class="form-inline">
     <input type="email" name="email" placeholder="Email" required>
     <input type="text" name="reason" placeholder="Grund (optional)">
     <button type="submit">Blockieren</button>
 </form>
-
-<a href="{{ url_for('admin_logout') }}">Admin Logout</a>
 {% endblock %}
