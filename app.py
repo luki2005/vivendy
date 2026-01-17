@@ -125,7 +125,7 @@ def person_new():
 def event_new(id):
     person = db.persons.find_one({"_id": ObjectId(id)})
 
-    if request.method == 'POST']:
+    if request.method == 'POST':
         titel = request.form['titel']
         datum = request.form['datum']
         beschreibung = request.form.get('beschreibung')
