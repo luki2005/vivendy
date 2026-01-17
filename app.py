@@ -9,7 +9,8 @@ from bson import ObjectId
 
 # ---------- MongoDB ----------
 
-MONGO_URL = "DEINE_MONGO_URL_HIER"
+MONGO_URL = "mongodb+srv://lukasfalkenauge2005_db_user:xNOTQGRe5t6hszDU@cluster4.aiejafm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster4"
+
 client = MongoClient(MONGO_URL)
 db = client["vivwendy"]
 
@@ -17,7 +18,7 @@ db = client["vivwendy"]
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
-app.secret_key = "CHANGE_THIS_SECRET_KEY"
+app.secret_key = "b7f4c2e9a1d84f6fb3c0e2a9f7d1c4e8c9a3f2b7d6e4a1f0b8c2d9e7f3a1c6b"
 
 # ---------- Helpers ----------
 
