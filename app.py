@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
@@ -8,41 +7,17 @@ import os
 from pymongo import MongoClient
 from bson import ObjectId
 
-MONGO_URL = "DEINE_MONGO_URL_HIER" 
-client = MongoClient(MONGO_URL) 
+# ---------- MongoDB ----------
+
+MONGO_URL = "DEINE_MONGO_URL_HIER"
+client = MongoClient(MONGO_URL)
 db = client["vivwendy"]
 
+# ---------- Flask ----------
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vivwendy.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 app.secret_key = "CHANGE_THIS_SECRET_KEY"
-
-db = SQLAlchemy(app)
-
-# ---------- Models ----------
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(120), unique=True, nullable=False)
-    email = db.Column(db.String(200), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-
-class Person(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    geburtsdatum = db.Column(db.Date, nullable=True)
-    beschreibung = db.Column(db.Text, nullable=True)
-    bild_dateiname = db.Column(db.String(255), nullable=True)
-
-class Event(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
-    titel = db.Column(db.String(200), nullable=False)
-    datum = db.Column(db.Date, nullable=False)
-    beschreibung = db.Column(db.Text, nullable=True)
-    person = db.relationship('Person', backref=db.backref('events', lazy=True))
 
 # ---------- Helpers ----------
 
@@ -81,22 +56,26 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
+    if request.method == 'POST']:
         login_input = request.form['login'].strip()
         password = request.form['password']
 
-        user = User.query.filter(
-            (User.username == login_input) | (User.email == login_input)
-        ).first()
+        user = db.users.find_one({
+            "$or": [
+                {"username": login_input},
+                {"email": login_input}
+            ]
+        })
 
-        if user and check_password_hash(user.password_hash, password):
-            session['user_id'] = user.id
-            session['username'] = user.username
+        if user and check_password_hash(user["password_hash"], password):
+            session['user_id'] = str(user["_id"])
+            session['username'] = user["username"]
             return redirect(url_for('index'))
 
         return render_template('login.html', error="Falsche Login-Daten.")
 
     return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
@@ -145,7 +124,7 @@ def person_new():
 def event_new(id):
     person = db.persons.find_one({"_id": ObjectId(id)})
 
-    if request.method == 'POST':
+    if request.method == 'POST']:
         titel = request.form['titel']
         datum = request.form['datum']
         beschreibung = request.form.get('beschreibung')
@@ -161,6 +140,7 @@ def event_new(id):
 
     return render_template('event_new.html', person=person)
 
+
 @app.route('/person/<id>')
 @login_required
 def person_detail(id):
@@ -169,8 +149,5 @@ def person_detail(id):
     return render_template('person_detail.html', person=person, events=events)
 
 
-
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
