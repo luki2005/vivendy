@@ -44,11 +44,15 @@ def register():
 
         hashed = generate_password_hash(password)
 
-        db.users.insert_one({
-            "username": username,
-            "email": email,
-            "password_hash": hashed
-        })
+    db.users.insert_one({
+    "username": username,
+    "email": email,
+    "password_hash": hashed,
+    "banned": False,
+    "ban_reason": None,
+    "role": "user"
+})
+
 
         return redirect(url_for('login'))
 
@@ -68,14 +72,20 @@ def login():
             ]
         })
 
-        if user and check_password_hash(user["password_hash"], password):
-            session['user_id'] = str(user["_id"])
-            session['username'] = user["username"]
-            return redirect(url_for('index'))
+        if user:
+            if user.get("banned") is True:
+                return render_template("banned.html", reason=user.get("ban_reason"))
+
+            if check_password_hash(user["password_hash"], password):
+                session['user_id'] = str(user["_id"])
+                session['username'] = user["username"]
+                session['role'] = user.get("role", "user")
+                return redirect(url_for('index'))
 
         return render_template('login.html', error="Falsche Login-Daten.")
 
     return render_template('login.html')
+
 
 
 @app.route('/logout')
