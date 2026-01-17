@@ -1,28 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Registrieren – Vivwendy{% endblock %}
-{% block header %}Registrieren{% endblock %}
+{% block title %}Registrierung{% endblock %}
+{% block header %}<h2>Registrierung</h2>{% endblock %}
 
 {% block content %}
-  <form class="form-card" method="post">
-    {% if error %}
-      <p class="error">{{ error }}</p>
-    {% endif %}
-
-    <label> Username
-      <input type="text" name="username" required>
-    </label>
-
-    <label> Gmail-Adresse
-      <input type="email" name="email" required>
-    </label>
-
-    <label> Passwort
-      <input type="password" name="password" required>
-    </label>
-
-    <div class="form-actions">
-      <button class="btn primary" type="submit">Account erstellen</button>
-    </div>
-  </form>
+<div class="form-box">
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <form method="post">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Passwort" required>
+        <button type="submit">Registrieren</button>
+    </form>
+    <p>Schon registriert? <a href="{{ url_for('login') }}">Login</a></p>
+</div>
 {% endblock %}
