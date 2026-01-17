@@ -1,15 +1,12 @@
 {% extends "base.html" %}
 
 {% block title %}Zugang gesperrt{% endblock %}
-{% block header %}Zugang gesperrt{% endblock %}
+{% block header %}<h2>Zugang gesperrt</h2>{% endblock %}
 
 {% block content %}
-<div class="banned-box" style="padding:20px; border:2px solid red; border-radius:10px; max-width:600px; margin:auto; text-align:center;">
-    <h2>❌ Dein Zugang wurde gesperrt</h2>
-    <p>Dein Account wurde aus Sicherheitsgründen blockiert.</p>
-    {% if reason %}
-        <p><strong>Grund:</strong> {{ reason }}</p>
-    {% endif %}
-    <p>Wenn du denkst, dass dies ein Fehler ist, kontaktiere den Moderator, um dein Passwort zurücksetzen zu lassen.</p>
+<div class="banned-box">
+    <h3>❌ Du wurdest gebannt</h3>
+    <p>{{ reason }}</p>
+    <p>Wenn du glaubst, dass das ein Fehler ist, kontaktiere den Administrator.</p>
 </div>
 {% endblock %}
